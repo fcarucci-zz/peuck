@@ -5,8 +5,20 @@ using UnityEngine;
 using System;
 using System.Runtime.InteropServices;
 
+// Unity Thread affinity
+//
+// Example:
+// CPU.SetUnityThreadAffinity(CPU.UnityThreads.Main, CPU.Cores.Little);
+//
+// Unity threads:
+//  CPU.UnityThreads.Main
+//  CPU.UnityThreads.GFX
+//  CPU.UnityThreads.Choreographer
+//  CPU.UnityThreads.WorkerThread
+
 namespace Peuck
 {
+    //public static void SetUnityThreadAffinity()
     public class Trace
     {
         public static void BeginSection(string name) 
@@ -28,6 +40,43 @@ namespace Peuck
 
     public class CPU
     {
+        public enum Cores { All = 0, Little = 1, Big = 2 }
+
+        public enum UnityThreads { Main = 1, GFX, Choreographer, WorkerThread };
+
+        private static Dictionary<UnityThreads, string> unityThreadsMap = new Dictionary<UnityThreads, string>()
+            {
+                { UnityThreads.Main, "UnityMain" },
+                { UnityThreads.GFX, "UnityGfxDeviceW" },
+                { UnityThreads.Choreographer, "UnityChoreograp" },
+                { UnityThreads.WorkerThread, "Worker Thread" },
+            };
+
+        public static void SetUnityThreadAffinity(UnityThreads thread, Cores cores) 
+        {
+            // Only support 8 core SoC for now, do nothing otherwise
+            if (GetCpuCount() != 8)
+            {
+                return;
+            }
+
+            int mask = 0xFFFF;
+
+            // Assume for now that the first 4 cores are little cores in a 8 core SoC.
+            // TODO: Use CPU topology to compute the mask
+            if (cores == Cores.Little) 
+            {
+                mask = 0x0F;
+            }
+            if (cores == Cores.Little)
+            {
+                mask = 0xF0;
+            }
+
+            SetThreadAffinityMaskByName(unityThreadsMap[thread], mask);
+        }
+
+
         public static int GetCpuCount()
         {
 #if !UNITY_ANDROID
@@ -60,7 +109,6 @@ namespace Peuck
 
             string[] lines = threads_string.Split(new string[] { "\n" }, StringSplitOptions.None);
 
-
             foreach (string line in lines) 
             {
                 Debug.Log(line);
@@ -69,7 +117,7 @@ namespace Peuck
                     continue;
                 int tid;
                 Int32.TryParse(tokens[0], out tid);
-                threads.Add(tid, tokens[1]);
+                threads.Add(tid, string.Join(" ", tokens.Skip(1));
             }
 
             return threads;

@@ -18,7 +18,6 @@
 
 #define LOG_TAG "Peuck"
 
-
 #include "Trace.h"
 #include "Log.h"
 
@@ -42,7 +41,7 @@ extern "C" void EndSection() {
   trace->endSection();
 }
 
-/************ Core Affintiy ************/
+/************ Cpu Affintiy ************/
 
 #include <sys/syscall.h>
 #include <pthread.h>
@@ -109,7 +108,6 @@ void ReadCpuInfo() {
     }
     fclose(fp);
   }
-  ALOGE("");
   ALOGE("CPU cores = %d", cpu.cores);
   ALOGE("CPU hardware = %s", cpu.hardware.c_str());
 }
