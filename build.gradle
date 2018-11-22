@@ -1,0 +1,120 @@
+
+import org.gradle.internal.logging.text.StyledTextOutput;
+import org.gradle.internal.logging.text.StyledTextOutputFactory;
+import static org.gradle.internal.logging.text.StyledTextOutput.Style;
+
+defaultTasks 'clean'
+
+def getAndroidNDKPath() {
+  return System.getenv("ANDROID_NDK")
+}
+
+def getAndroidSDKPath() {
+  return System.getenv("ANDROID_HOME")
+}
+
+ext.tempFolder = '.temp'
+ext.buildFolder = 'build'
+ext.androidNDK = getAndroidNDKPath()
+ext.androidNDKVersion = "26"
+ext.androidSDK = getAndroidSDKPath()
+
+if (ext.androidSDK == null) {
+  throw new GradleException('Must set ANDROID_HOME')
+}
+
+if (ext.androidNDK == null) {
+  ext.androidNDK = ext.androidSDK + '/ndk-bundle'
+  if (!file(ext.androidNDK).exists())
+    throw new GradleException('No NDK found in SDK: must set ANDROID_NDK')
+}
+
+def findCMake() {
+  def cmake = System.getenv("CMAKE");
+  if (cmake != null) {
+    return cmake;
+  }
+
+  def cmakes = fileTree(project.property('androidSDK')).matching { include 'cmake/*/bin/cmake' }
+  if (cmakes.size() == 0) {
+    throw new GradleException('No cmake found in ' + project.property('androidSDK') + 'cmake')
+  }
+  return cmakes.last();
+}
+
+ext.cmake = findCMake()
+
+println "Build folder: $buildFolder"
+println "Android SDK folder: $androidSDK"
+println "Android NDK folder: $androidNDK"
+println "Using cmake from: $cmake"
+
+def cmake(projectFolder, cmakeFolder, arch, ndkVersion) {
+  exec {
+    workingDir cmakeFolder
+
+    commandLine "$cmake",
+     "$projectFolder",
+     "-DCMAKE_BUILD_TYPE=Release ",
+     "-DANDROID_PLATFORM=android-" + ndkVersion,
+     "-DANDROID_NDK=" + project.property('androidNDK') + " ",
+     "-DANDROID_STL=c++_static ",
+     "-DANDROID_ABI=" + arch,
+     "-DCMAKE_CXX_FLAGS= ",
+     "-DCMAKE_TOOLCHAIN_FILE=" + project.property('androidNDK') + "/build/cmake/android.toolchain.cmake",
+     "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=./"
+  }
+}
+
+def buildGameSDK(arch, ndkVersion) {
+  def cmakeFolder = project.property('tempFolder') + '/' + arch + '/.cmake'
+  def buildFolder = project.property('buildFolder') + '/libs/' + arch
+
+  mkdir cmakeFolder
+  mkdir buildFolder
+
+  exec {
+    commandLine "$cmake", '--version'
+  }
+
+  cmake("$projectDir/src/", cmakeFolder, arch, ndkVersion)
+
+  exec {
+    workingDir cmakeFolder
+
+    commandLine "make"
+  }
+
+  copy {
+    from file(cmakeFolder + "/libpeuck_static.a")
+    into file(buildFolder + "/libpeuck_static.a")
+  }
+  copy {
+    from file(cmakeFolder + "/libpeuck.so")
+    into file(buildFolder + "/libpeuck.so")
+  }
+}
+
+task clean(type: Delete) {
+  delete project.property('tempFolder')
+  delete project.property('buildFolder')
+}
+
+task build() {
+  def includeFolder = project.property('buildFolder') + '/include'
+  doFirst {
+    delete includeFolder
+    mkdir includeFolder
+  }
+
+  def ndkVersion = project.property('androidNDKVersion')
+  buildGameSDK("armeabi-v7a", ndkVersion)
+  buildGameSDK("arm64-v8a", ndkVersion)
+
+  doLast {
+    copy {
+      from "$projectDir/include"
+      into includeFolder
+    }
+  }
+}
