@@ -15,6 +15,8 @@ using System.Runtime.InteropServices;
 //  CPU.UnityThreads.GFX
 //  CPU.UnityThreads.Choreographer
 //  CPU.UnityThreads.WorkerThread
+//
+// Only works on 8 core SoCs for now (eg. Qualcomm SDM845, SDM835
 
 namespace Peuck
 {
@@ -55,7 +57,7 @@ namespace Peuck
         public static void SetUnityThreadAffinity(UnityThreads thread, Cores cores) 
         {
             // Only support 8 core SoC for now, do nothing otherwise
-            if (GetCpuCount() != 8)
+            if (GetCoresCount() != 8)
             {
                 return;
             }
@@ -77,13 +79,13 @@ namespace Peuck
         }
 
 
-        public static int GetCpuCount()
+        public static int GetCoresCount()
         {
 #if !UNITY_ANDROID
             return 0;
 #endif
 
-            return Internal.CPU.GetCpuCount();
+            return Internal.CPU.GetCoresCount();
         }
 
         public static string GetCpuHardware()
@@ -117,7 +119,8 @@ namespace Peuck
                     continue;
                 int tid;
                 Int32.TryParse(tokens[0], out tid);
-                threads.Add(tid, string.Join(" ", tokens.Skip(1));
+
+                threads.Add(tid, string.Join(" ", tokens, 1, tokens.Length));
             }
 
             return threads;
@@ -162,7 +165,7 @@ namespace Peuck
         public class CPU
         {
             [DllImport("peuck")]
-            public static extern int GetCpuCount();
+            public static extern int GetCoresCount();
 
             [DllImport("peuck")]
             public static extern string GetCpuHardware();

@@ -82,21 +82,47 @@ std::vector<std::string> split(const std::string& s, char c) {
 }
 
 struct Cpu {
-  int cores = 0;
+  struct Core {
+    int id;
+    int frequency;
+    int package_id;
+  };
+
+  std::vector<Core> cores;
   std::string hardware;
   std::map<int, std::string> threads;
 } cpu;
 
+std::string ReadFile(const std::string& path) {
+  char buf[10240];
+  FILE *fp = fopen(path.c_str(), "r");
+  if (fp == nullptr)
+    return std::string();
+
+  fgets(buf, 10240, fp);
+  fclose(fp);
+  return std::string(buf);
+}
+
 void ReadCpuInfo() {
   char buf[10240];
   FILE *fp = fopen("/proc/cpuinfo", "r");
+
   if (fp) {
     while (fgets(buf, 10240, fp) != NULL) {
       buf[strlen(buf) - 1] = '\0'; // eat the newline fgets() stores
       std::string line = buf;
 
       if (startsWith(line, "processor")) {
-        cpu.cores++;
+        auto frequency = ReadFile(std::string("/sys/devices/system/cpu/cpu") + std::to_string(cpu.cores.size()) + "/cpufreq/cpuinfo_max_freq");
+        auto package_id = ReadFile(std::string("/sys/devices/system/cpu/cpu") + std::to_string(cpu.cores.size()) + "/topology/physical_package_id");
+
+        Cpu::Core core;
+        core.id = cpu.cores.size();
+        core.frequency = std::atoi(frequency.c_str());
+        core.package_id = std::atoi(package_id.c_str());
+
+        cpu.cores.push_back(core);
       }
       if (startsWith(line, "Hardware")) {
         cpu.hardware = split(line, ':')[1];
@@ -108,7 +134,7 @@ void ReadCpuInfo() {
     }
     fclose(fp);
   }
-  ALOGE("CPU cores = %d", cpu.cores);
+  ALOGE("CPU cores = %d", (int) cpu.cores.size());
   ALOGE("CPU hardware = %s", cpu.hardware.c_str());
 }
 
@@ -131,13 +157,14 @@ void FindAllThreads() {
     std::string task_path = std::string("/proc/self/task/") + std::string(entry->d_name) + "/stat";
     FILE *fp = fopen(task_path.c_str(), "r");
     fgets(buf, 10240, fp);
+    fclose(fp);
+
     auto thread_name = split(std::string(buf), '(')[1];
+
     thread_name = split(thread_name, ')')[0];
     // ALOGE("%d %s", tid, thread_name.c_str());
 
     cpu.threads.insert(std::make_pair(tid, thread_name));
-
-    fclose(fp);
   }
 
   closedir(dir);
@@ -154,17 +181,26 @@ extern "C" const char* EnumerateThreads() {
   return threads.c_str();
 }
 
-extern "C" int GetCpuCount() {
+extern "C" int GetCoresCount() {
   // not thread safe
-  if (cpu.cores == 0) {
+  if (cpu.cores.empty()) {
     ReadCpuInfo();
   }
 
-  return cpu.cores;
+  return cpu.cores.size();
+}
+
+extern "C" const char* GetCpuTopology() {
+  if (cpu.cores.empty()) {
+    ReadCpuInfo();
+  }
+
+  return "";
 }
 
 extern "C" const char* GetCpuHardware() {
-  if (cpu.cores == 0) {
+  // not thread safe
+  if (cpu.cores.empty()) {
     ReadCpuInfo();
   }
 
