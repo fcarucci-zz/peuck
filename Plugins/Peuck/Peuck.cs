@@ -107,7 +107,6 @@ namespace Peuck
 #endif
         }
 
-
         public static Dictionary<int, string> EnumerateThreads()
         {
             Dictionary<int, string> threads = new Dictionary<int, string>();
@@ -131,7 +130,7 @@ namespace Peuck
                 int tid;
                 Int32.TryParse(tokens[0], out tid);
 
-                threads.Add(tid, string.Join(" ", tokens, 1, tokens.Length));
+                threads.Add(tid, string.Join(" ", tokens, 1, tokens.Length -1));
             }
 
             return threads;
