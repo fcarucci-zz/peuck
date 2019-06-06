@@ -43,7 +43,7 @@ namespace Peuck
     {
         public enum Cores { All = 0, Little = 1, Big = 2 }
 
-        public enum UnityThreads { Main = 1, GFX, Choreographer, WorkerThread, FMODMixer };
+        public enum UnityThreads { Main = 1, GFX, Choreographer, WorkerThread, BackgroundWorker, FMODMixer, FMODStreamer };
 
         private static Dictionary<UnityThreads, string> unityThreadsMap = new Dictionary<UnityThreads, string>()
             {
@@ -51,7 +51,9 @@ namespace Peuck
                 { UnityThreads.GFX, "UnityGfxDeviceW" },
                 { UnityThreads.Choreographer, "UnityChoreograp" },
                 { UnityThreads.WorkerThread, "Worker Thread" },
-                { UnityThreads.FMODMixer, "FMOD Mixer" },
+                { UnityThreads.FMODMixer, "FMOD mixer thre" },
+                { UnityThreads.FMODStreamer, "FMOD stream thr" },
+                { UnityThreads.BackgroundWorker, "BackgroundWorke" },
             };
 
         public static void SetUnityThreadAffinity(UnityThreads thread, Cores cores)
