@@ -15,6 +15,7 @@ using System.Runtime.InteropServices;
 //  CPU.UnityThreads.GFX
 //  CPU.UnityThreads.Choreographer
 //  CPU.UnityThreads.WorkerThread
+//  CPU.UnityThreads.FMODMixer
 //
 // Only works on 8 core SoCs for now (eg. Qualcomm SDM845, SDM835
 
@@ -25,18 +26,16 @@ namespace Peuck
     {
         public static void BeginSection(string name)
         {
-#if !UNITY_ANDROID
-            return;
-#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
             Internal.Trace.BeginSection(name);
+#endif
         }
 
         public static void EndSection()
         {
-#if !UNITY_ANDROID
-            return;
-#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
             Internal.Trace.EndSection();
+#endif
         }
     }
 
@@ -44,7 +43,7 @@ namespace Peuck
     {
         public enum Cores { All = 0, Little = 1, Big = 2 }
 
-        public enum UnityThreads { Main = 1, GFX, Choreographer, WorkerThread };
+        public enum UnityThreads { Main = 1, GFX, Choreographer, WorkerThread, FMODMixer };
 
         private static Dictionary<UnityThreads, string> unityThreadsMap = new Dictionary<UnityThreads, string>()
             {
@@ -52,10 +51,12 @@ namespace Peuck
                 { UnityThreads.GFX, "UnityGfxDeviceW" },
                 { UnityThreads.Choreographer, "UnityChoreograp" },
                 { UnityThreads.WorkerThread, "Worker Thread" },
+                { UnityThreads.FMODMixer, "FMOD Mixer" },
             };
 
         public static void SetUnityThreadAffinity(UnityThreads thread, Cores cores)
         {
+#if UNITY_ANDROID && !UNITY_EDITOR
             // Only support 8 core SoC for now, do nothing otherwise
             if (GetCoresCount() != 8)
             {
@@ -76,32 +77,42 @@ namespace Peuck
             }
 
             SetThreadAffinityMaskByName(unityThreadsMap[thread], mask);
+#endif
         }
-
 
         public static int GetCoresCount()
         {
-#if !UNITY_ANDROID
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return Internal.CPU.GetCoresCount();
+#else
             return 0;
 #endif
-
-            return Internal.CPU.GetCoresCount();
         }
 
         public static string GetCpuHardware()
         {
-#if !UNITY_ANDROID
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return Internal.CPU.GetCpuHardware();
+#else
             return "";
 #endif
-
-            return Internal.CPU.GetCpuHardware();
         }
+
+        public static string GetCpuTopology()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            return Internal.CPU.GetCpuTopology();
+#else
+            return "";
+#endif
+        }
+
 
         public static Dictionary<int, string> EnumerateThreads()
         {
             Dictionary<int, string> threads = new Dictionary<int, string>();
 
-#if UNITY_ANDROID
+#if UNITY_ANDROID && !UNITY_EDITOR
             string threads_string = Internal.CPU.EnumerateThreads();
 
 #else
@@ -128,29 +139,27 @@ namespace Peuck
 
         public static void SetCurrentThreadAffinityMask(int mask)
         {
-#if !UNITY_ANDROID
-            return;
-#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
             Internal.CPU.SetCurrentThreadAffinityMask(mask);
+#endif
         }
 
         public static void SetThreadAffinityMaskByName(string name, int mask)
         {
-#if !UNITY_ANDROID
-            return;
-#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
             Internal.CPU.SetThreadAffinityMaskByName(name, mask);
+#endif
         }
 
         public static void SetThreadAffinityMask(int tid, int mask)
         {
-#if !UNITY_ANDROID
-            return;
-#endif
+#if UNITY_ANDROID && !UNITY_EDITOR
             Internal.CPU.SetThreadAffinityMask(tid, mask);
+#endif
         }
     }
 
+#if UNITY_ANDROID && !UNITY_EDITOR
     namespace Internal
     {
         public class Trace
@@ -186,4 +195,5 @@ namespace Peuck
             public static extern void SetThreadAffinityMask(int tid, int mask);
         }
     }
+#endif
 }
