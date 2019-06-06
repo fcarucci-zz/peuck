@@ -13,7 +13,7 @@ def getAndroidSDKPath() {
   return System.getenv("ANDROID_HOME")
 }
 
-ext.tempFolder = '.temp'
+ext.tempFolder = '/var/tmp/.temp'
 ext.buildFolder = 'build'
 ext.androidNDK = getAndroidNDKPath()
 ext.androidNDKVersion = "26"
@@ -37,7 +37,7 @@ def findCMake() {
 
   def cmakes = fileTree(project.property('androidSDK')).matching { include 'cmake/*/bin/cmake' }
   if (cmakes.size() == 0) {
-    throw new GradleException('No cmake found in ' + project.property('androidSDK') + 'cmake')
+    throw new GradleException('No cmake found in ' + project.property('androidSDK') + '/cmake')
   }
   return cmakes.last();
 }
@@ -76,6 +76,8 @@ def buildGameSDK(arch, ndkVersion) {
   exec {
     commandLine "$cmake", '--version'
   }
+
+  println "Cmake folder: $cmakeFolder"
 
   cmake("$projectDir/src/", cmakeFolder, arch, ndkVersion)
 

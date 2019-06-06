@@ -23,7 +23,7 @@ namespace Peuck
     //public static void SetUnityThreadAffinity()
     public class Trace
     {
-        public static void BeginSection(string name) 
+        public static void BeginSection(string name)
         {
 #if !UNITY_ANDROID
             return;
@@ -54,7 +54,7 @@ namespace Peuck
                 { UnityThreads.WorkerThread, "Worker Thread" },
             };
 
-        public static void SetUnityThreadAffinity(UnityThreads thread, Cores cores) 
+        public static void SetUnityThreadAffinity(UnityThreads thread, Cores cores)
         {
             // Only support 8 core SoC for now, do nothing otherwise
             if (GetCoresCount() != 8)
@@ -66,11 +66,11 @@ namespace Peuck
 
             // Assume for now that the first 4 cores are little cores in a 8 core SoC.
             // TODO: Use CPU topology to compute the mask
-            if (cores == Cores.Little) 
+            if (cores == Cores.Little)
             {
                 mask = 0x0F;
             }
-            if (cores == Cores.Little)
+            if (cores == Cores.Big)
             {
                 mask = 0xF0;
             }
@@ -111,7 +111,7 @@ namespace Peuck
 
             string[] lines = threads_string.Split(new string[] { "\n" }, StringSplitOptions.None);
 
-            foreach (string line in lines) 
+            foreach (string line in lines)
             {
                 Debug.Log(line);
                 string[] tokens = line.Split(new string[] { " " }, StringSplitOptions.None);
@@ -171,6 +171,9 @@ namespace Peuck
             public static extern string GetCpuHardware();
 
             [DllImport("peuck")]
+            public static extern string GetCpuTopology();
+
+            [DllImport("peuck")]
             public static extern string EnumerateThreads();
 
             [DllImport("peuck")]
@@ -184,4 +187,3 @@ namespace Peuck
         }
     }
 }
-

@@ -173,7 +173,9 @@ void FindAllThreads() {
 extern "C" const char* EnumerateThreads() {
   FindAllThreads();
 
-  std::string threads;
+  // not thread safe
+  static std::string threads;
+
   for (const auto& thread : cpu.threads) {
     threads += std::string(std::to_string(thread.first)) + " " + thread.second + "\n";
   }
@@ -191,11 +193,19 @@ extern "C" int GetCoresCount() {
 }
 
 extern "C" const char* GetCpuTopology() {
+  // not thread safe
   if (cpu.cores.empty()) {
     ReadCpuInfo();
   }
 
-  return "";
+  // not thread safe
+  static std::string cpu_info;
+
+  for (const auto& core : cpu.cores) {
+    cpu_info += std::to_string(core.id) + " " + std::to_string(core.frequency) + " " + std::to_string(core.package_id) + "\n";
+  }
+
+  return cpu_info.c_str();
 }
 
 extern "C" const char* GetCpuHardware() {
