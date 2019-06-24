@@ -41,6 +41,13 @@ namespace Peuck
 
     public class CPU
     {
+        public struct Core
+        {
+            public int index;
+            public long frequency;
+            public int cluster;
+        }
+
         public enum Cores { All = 0, Little = 1, Big = 2 }
 
         public enum UnityThreads { Main = 1, GFX, Choreographer, WorkerThread, BackgroundWorker, FMODMixer, FMODStreamer };
@@ -96,17 +103,41 @@ namespace Peuck
 #if UNITY_ANDROID && !UNITY_EDITOR
             return Internal.CPU.GetCpuHardware();
 #else
-            return "";
+            return null;
 #endif
         }
 
-        public static string GetCpuTopology()
+        public static List<Core> GetCpuTopology()
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
-            return Internal.CPU.GetCpuTopology();
+            string topology_string = Internal.CPU.GetCpuTopology();
 #else
-            return "";
+            string topology_string = null;
 #endif
+            List<Core> topology = new List<Core>();
+
+            if (topology_string == null)
+                return topology;
+
+            string[] lines = topology_string.Split('\n');
+
+            foreach (var line in lines)
+            {
+                string[] tokens = line.Split(' ');
+
+                if (tokens.Length < 3)
+                    continue;
+
+                Core core = new Core();
+
+                core.index = Convert.ToInt32(tokens[0]);
+                core.frequency = Convert.ToInt64(tokens[1]);
+                core.cluster = Convert.ToInt32(tokens[2]);
+
+                topology.Add(core);
+            }
+
+            return topology;
         }
 
         public static Dictionary<int, string> EnumerateThreads()

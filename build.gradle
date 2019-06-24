@@ -62,7 +62,7 @@ def cmake(projectFolder, cmakeFolder, arch, ndkVersion) {
      "-DANDROID_ABI=" + arch,
      "-DCMAKE_CXX_FLAGS= ",
      "-DCMAKE_TOOLCHAIN_FILE=" + project.property('androidNDK') + "/build/cmake/android.toolchain.cmake",
-     "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=/var/tmp"
+     "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=/var/tmp/" + arch
   }
 }
 
@@ -93,7 +93,7 @@ def buildLibs(arch, ndkVersion) {
   }
   copy {
     from file(cmakeFolder + "/libpeuck.so")
-    into file(buildFolder + "/libpeuck.so")
+    into file(buildFolder + "/libpeuck" + arch + ".so")
   }
 }
 
