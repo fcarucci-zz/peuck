@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-#include "Peuck.h"
-
 #define LOG_TAG "Peuck"
 
 #include "Trace.h"
@@ -24,6 +22,8 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <sstream>
+#include <cstdlib>
 
 /************ TRACE ************/
 
@@ -91,12 +91,13 @@ struct Cpu {
   std::vector<Core> cores;
   std::string hardware;
   std::map<int, std::string> threads;
+  std::string topology;
 } cpu;
 
 std::string ReadFile(const std::string& path) {
   char buf[10240];
   FILE *fp = fopen(path.c_str(), "r");
-  if (fp == nullptr)
+  if (fp == 0)
     return std::string();
 
   fgets(buf, 10240, fp);
@@ -109,13 +110,18 @@ void ReadCpuInfo() {
   FILE *fp = fopen("/proc/cpuinfo", "r");
 
   if (fp) {
+    std::stringstream ss;
     while (fgets(buf, 10240, fp) != NULL) {
       buf[strlen(buf) - 1] = '\0'; // eat the newline fgets() stores
       std::string line = buf;
 
       if (startsWith(line, "processor")) {
-        auto frequency = ReadFile(std::string("/sys/devices/system/cpu/cpu") + std::to_string(cpu.cores.size()) + "/cpufreq/cpuinfo_max_freq");
-        auto package_id = ReadFile(std::string("/sys/devices/system/cpu/cpu") + std::to_string(cpu.cores.size()) + "/topology/physical_package_id");
+        ss.str("");
+        ss << "/sys/devices/system/cpu/cpu" << cpu.cores.size() << "/cpufreq/cpuinfo_max_freq";
+        auto frequency = ReadFile(ss.str());
+        ss.str("");
+        ss << "/sys/devices/system/cpu/cpu" << cpu.cores.size() << "/topology/physical_package_id";
+        auto package_id = ReadFile(ss.str());
 
         Cpu::Core core;
         core.id = cpu.cores.size();
@@ -133,6 +139,12 @@ void ReadCpuInfo() {
       // ALOGE("[%d]: %s", cpu.cores, line.c_str());
     }
     fclose(fp);
+
+    ss.str("");
+    for (const auto& core : cpu.cores) {
+      ss << core.id << " " << core.frequency << " " << core.package_id << std::endl;
+    }
+    cpu.topology = ss.str();
   }
   ALOGE("CPU cores = %d", (int) cpu.cores.size());
   ALOGE("CPU hardware = %s", cpu.hardware.c_str());
@@ -176,9 +188,12 @@ extern "C" const char* EnumerateThreads() {
   // not thread safe
   static std::string threads;
 
+  std::stringstream ss;
   for (const auto& thread : cpu.threads) {
-    threads += std::string(std::to_string(thread.first)) + " " + thread.second + "\n";
+    ss << thread.first << " " << thread.second << std::endl;
   }
+
+  threads = ss.str();
 
   return threads.c_str();
 }
@@ -198,14 +213,7 @@ extern "C" const char* GetCpuTopology() {
     ReadCpuInfo();
   }
 
-  // not thread safe
-  static std::string cpu_info;
-
-  for (const auto& core : cpu.cores) {
-    cpu_info += std::to_string(core.id) + " " + std::to_string(core.frequency) + " " + std::to_string(core.package_id) + "\n";
-  }
-
-  return cpu_info.c_str();
+  return cpu.topology.c_str();
 }
 
 extern "C" const char* GetCpuHardware() {

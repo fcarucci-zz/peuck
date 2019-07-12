@@ -39,39 +39,39 @@ class Trace {
           ATrace_endSection(endSection),
           ATrace_isEnabled(isEnabled) {}
 
-    static std::unique_ptr<Trace> create() {
+    static Trace* create() {
         void *libandroid = dlopen("libandroid.so", RTLD_NOW | RTLD_LOCAL);
         if (!libandroid) {
-            return std::make_unique<Trace>();
+            return 0;
         }
 
         auto beginSection = reinterpret_cast<ATrace_beginSection_type>(
             dlsym(libandroid, "ATrace_beginSection"));
         if (!beginSection) {
-            return std::make_unique<Trace>();
+            return 0;
         }
 
         auto endSection = reinterpret_cast<ATrace_endSection_type>(
             dlsym(libandroid, "ATrace_endSection"));
         if (!endSection) {
-            return std::make_unique<Trace>();
+            return 0;
         }
 
         auto isEnabled = reinterpret_cast<ATrace_isEnabled_type>(
             dlsym(libandroid, "ATrace_isEnabled"));
         if (!isEnabled) {
-            return std::make_unique<Trace>();
+            return 0;
         }
 
-        return std::make_unique<Trace>(beginSection, endSection, isEnabled);
+        return new Trace(beginSection, endSection, isEnabled);
     }
 
     bool isAvailable() const {
-        return ATrace_beginSection != nullptr;
+        return ATrace_beginSection != 0;
     }
 
     bool isEnabled() const {
-        return (ATrace_isEnabled != nullptr) && ATrace_isEnabled();
+        return (ATrace_isEnabled != 0) && ATrace_isEnabled();
     }
 
     void beginSection(const char *name) const {
@@ -91,14 +91,14 @@ class Trace {
     }
 
     static Trace *getInstance() {
-        static std::unique_ptr<Trace> trace = Trace::create();
-        return trace.get();
+        static Trace* trace = Trace::create();
+        return trace;
     };
 
   private:
-    const ATrace_beginSection_type ATrace_beginSection = nullptr;
-    const ATrace_endSection_type ATrace_endSection = nullptr;
-    const ATrace_isEnabled_type ATrace_isEnabled = nullptr;
+    const ATrace_beginSection_type ATrace_beginSection = 0;
+    const ATrace_endSection_type ATrace_endSection = 0;
+    const ATrace_isEnabled_type ATrace_isEnabled = 0;
 };
 
 struct ScopedTrace {
