@@ -13,7 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <sched.h>
+#include <sys/types.h>
+#include <unistd.h>
 
+pid_t my_pid; // PID of the process containing your thread.
+
+// Assumes that cpu0, cpu1, cpu2, and cpu3 are the "slow CPUs".
+cpu_set_t my_cpu_set;
+CPU_ZERO(&my_cpu_set);
+CPU_SET(0, &my_cpu_set);
+CPU_SET(1, &my_cpu_set);
+CPU_SET(2, &my_cpu_set);
+CPU_SET(3, &my_cpu_set);
+sched_setaffinity(my_pid, sizeof(cpu_set_t), &my_cpu_set);
 #define LOG_TAG "Peuck"
 
 #include "Trace.h"
